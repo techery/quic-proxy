@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/elazarl/goproxy"
-	"github.com/liudanking/quic-proxy/common"
+	"github.com/techery/quic-proxy/common"
 )
 
 func SetAuthForBasicRequest(username, password string) goproxy.ReqHandler {
