@@ -12,6 +12,7 @@ import (
 
 	_ "net/http/pprof"
 
+	"github.com/CAFxX/httpcompression"
 	log "github.com/liudanking/goutil/logutil"
 	"github.com/liudanking/quic-proxy/common"
 )
@@ -65,14 +66,20 @@ func main() {
 			r.URL.Scheme = "https"
 			return r, nil
 		})
+	proxy.OnResponse().DoFunc(
+		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+			return resp
+		})
 	ProxyBasicAuth(proxy, func(u, p string) bool {
 		return u == username && p == password
 	})
 	proxy.Verbose = verbose
-	server := &http.Server{Addr: listenAddr, Handler: proxy}
+
+	compress, _ := httpcompression.DefaultAdapter()
+
+	server := &http.Server{Addr: listenAddr, Handler: compress(proxy)}
 	log.Info("start serving %v", listenAddr)
 	log.Error("serve error:%v", server.Serve(ql))
-
 }
 
 func generateTLSConfig(certFile, keyFile string) *tls.Config {

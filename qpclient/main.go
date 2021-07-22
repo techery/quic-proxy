@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/CAFxX/httpcompression"
 	"net/http"
 	"net/url"
 	"strings"
@@ -34,6 +35,15 @@ func main() {
 	flag.Parse()
 
 	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest().DoFunc(
+		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			r.Header.Set("X-GoProxy", "yxorPoG-X")
+			return r, nil
+		})
+	proxy.OnResponse().DoFunc(
+		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+			return resp
+		})
 	proxy.Verbose = verbose
 
 	if pprofile {
@@ -73,6 +83,8 @@ func main() {
 	// set basic auth
 	proxy.OnRequest().Do(SetAuthForBasicRequest(username, password))
 
+	compress, _ := httpcompression.DefaultAdapter()
+
 	log.Info("start serving %s", listenAddr)
-	log.Error("%v", http.ListenAndServe(listenAddr, proxy))
+	log.Error("%v", http.ListenAndServe(listenAddr, compress(proxy)))
 }
