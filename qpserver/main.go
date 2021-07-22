@@ -60,6 +60,11 @@ func main() {
 	ql := common.NewQuicListener(listener)
 
 	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest().DoFunc(
+		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			r.URL.Scheme = "https"
+			return r, nil
+		})
 	ProxyBasicAuth(proxy, func(u, p string) bool {
 		return u == username && p == password
 	})
