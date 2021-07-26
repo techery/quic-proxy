@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"net"
 	"sync"
+	"time"
 
 	log "github.com/liudanking/goutil/logutil"
 
@@ -14,6 +15,11 @@ import (
 const (
 	KQuicProxy = "quic-proxy"
 )
+
+type Stats struct {
+	StartTime time.Time
+}
+
 
 type QuicListener struct {
 	quic.Listener

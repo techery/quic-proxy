@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/elazarl/goproxy"
 	"github.com/lucas-clemente/quic-go"
@@ -24,26 +26,18 @@ func main() {
 		key        string
 		auth       string
 		verbose    bool
-		pprofile   bool
 	)
 	flag.StringVar(&listenAddr, "l", ":443", "listen addr (udp port only)")
 	flag.StringVar(&cert, "cert", "", "cert path")
 	flag.StringVar(&key, "key", "", "key path")
 	flag.StringVar(&auth, "auth", "quic-proxy:Go!", "basic auth, format: username:password")
 	flag.BoolVar(&verbose, "v", false, "verbose")
-	flag.BoolVar(&pprofile, "p", false, "http pprof")
 	flag.Parse()
 
 	log.Info("%v", verbose)
 	if cert == "" || key == "" {
 		log.Error("cert and key can't by empty")
 		return
-	}
-
-	if pprofile {
-		pprofAddr := "localhost:6060"
-		log.Notice("listen pprof:%s", pprofAddr)
-		go http.ListenAndServe(pprofAddr, nil)
 	}
 
 	parts := strings.Split(auth, ":")
@@ -64,10 +58,15 @@ func main() {
 	proxy.OnRequest().DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			r.URL.Scheme = "https"
+			ctx.UserData = common.Stats{
+				StartTime: time.Now(),
+			}
 			return r, nil
 		})
 	proxy.OnResponse().DoFunc(
 		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+			stats := ctx.UserData.(common.Stats)
+			resp.Header["X-callduration"] = []string{fmt.Sprintf("%v", time.Since(stats.StartTime))}
 			return resp
 		})
 	ProxyBasicAuth(proxy, func(u, p string) bool {
