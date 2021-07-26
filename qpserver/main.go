@@ -74,7 +74,7 @@ func main() {
 	})
 	proxy.Verbose = verbose
 
-	compress, _ := httpcompression.Adapter(httpcompression.BrotliCompressionLevel(11))
+	compress, _ := httpcompression.Adapter(httpcompression.BrotliCompressionLevel(11), httpcompression.GzipCompressionLevel(9))
 
 	server := &http.Server{Addr: listenAddr, Handler: compress(proxy)}
 	log.Info("start serving %v", listenAddr)
