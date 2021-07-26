@@ -23,7 +23,6 @@ func main() {
 		skipCertVerify bool
 		auth           string
 		verbose        bool
-		pprofile       bool
 	)
 
 	flag.StringVar(&listenAddr, "l", ":18080", "listenAddr")
@@ -31,26 +30,15 @@ func main() {
 	flag.BoolVar(&skipCertVerify, "k", false, "skip Cert Verify")
 	flag.StringVar(&auth, "auth", "quic-proxy:Go!", "basic auth, format: username:password")
 	flag.BoolVar(&verbose, "v", false, "verbose")
-	flag.BoolVar(&pprofile, "p", false, "http pprof")
 	flag.Parse()
 
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.OnRequest().DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			r.Header.Set("X-GoProxy", "yxorPoG-X")
+			r.Header.Set("Accept-Encoding", "br")
 			return r, nil
 		})
-	proxy.OnResponse().DoFunc(
-		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-			return resp
-		})
 	proxy.Verbose = verbose
-
-	if pprofile {
-		pprofAddr := "localhost:6061"
-		log.Notice("listen pprof:%s", pprofAddr)
-		go http.ListenAndServe(pprofAddr, nil)
-	}
 
 	Url, err := url.Parse(proxyUrl)
 	if err != nil {
@@ -76,14 +64,13 @@ func main() {
 	dialer := common.NewQuicDialer(skipCertVerify)
 	proxy.Tr.Dial = dialer.Dial
 
-	// proxy.ConnectDial = proxy.NewConnectDialToProxy(proxyUrl)
 	proxy.ConnectDial = proxy.NewConnectDialToProxyWithHandler(proxyUrl,
 		SetAuthForBasicConnectRequest(username, password))
 
 	// set basic auth
 	proxy.OnRequest().Do(SetAuthForBasicRequest(username, password))
 
-	compress, _ := httpcompression.DefaultAdapter()
+	compress, _ := httpcompression.Adapter(httpcompression.BrotliCompressionLevel(11))
 
 	log.Info("start serving %s", listenAddr)
 	log.Error("%v", http.ListenAndServe(listenAddr, compress(proxy)))
